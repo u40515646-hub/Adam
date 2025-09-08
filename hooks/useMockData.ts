@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { User, Role, ScheduleEvent, TrainingPlan, Challenge, ChatMessage } from '../types';
-import { GoogleGenAI } from '@google/genai';
 
 const initialUsers: User[] = [
   {
@@ -20,7 +19,29 @@ const initialUsers: User[] = [
 const initialSchedule: ScheduleEvent[] = [];
 const initialTrainingPlans: TrainingPlan[] = [];
 const initialConversations: Record<string, ChatMessage[]> = {};
-const initialChallenges: Challenge[] = [];
+const initialChallenges: Challenge[] = [
+  {
+    id: 1,
+    title: 'Perfect Attendance Week',
+    description: 'Attend every scheduled practice for a full week.',
+    points: 50,
+    completedByUserIds: [1],
+  },
+  {
+    id: 2,
+    title: 'Personal Best',
+    description: 'Beat your personal best time in any stroke during a timed practice.',
+    points: 100,
+    completedByUserIds: [],
+  },
+  {
+    id: 3,
+    title: 'Early Bird',
+    description: 'Be the first one in the pool for 3 consecutive practices.',
+    points: 75,
+    completedByUserIds: [],
+  }
+];
 
 const useMockData = () => {
   const [users, setUsers] = useState<User[]>(initialUsers);
@@ -30,13 +51,6 @@ const useMockData = () => {
   const [challenges, setChallenges] = useState<Challenge[]>(initialChallenges);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [alert, setAlert] = useState<string | null>(null);
-
-  const getAI = () => {
-    if (!process.env.API_KEY) {
-      throw new Error("API_KEY environment variable not set");
-    }
-    return new GoogleGenAI({ apiKey: process.env.API_KEY });
-  };
 
   const login = (name: string, pinOrPassword: string, role: Role, captainPassword?: string): boolean => {
     const user = users.find(u => u.name.toLowerCase() === name.toLowerCase() && u.role === role);
@@ -120,6 +134,36 @@ const useMockData = () => {
     setTrainingPlans(prev => [...prev, newPlan]);
   };
   
+  const addChallenge = (challenge: Omit<Challenge, 'id' | 'completedByUserIds'>) => {
+    if (currentUser?.role !== Role.Captain) return;
+    const newChallenge: Challenge = {
+      ...challenge,
+      id: Date.now(),
+      completedByUserIds: [],
+    };
+    setChallenges(prev => [newChallenge, ...prev]);
+  };
+
+  const completeChallenge = (challengeId: number) => {
+    if (!currentUser) return;
+    const challenge = challenges.find(c => c.id === challengeId);
+    if (!challenge || challenge.completedByUserIds.includes(currentUser.id)) return;
+    
+    // Mark challenge as complete
+    setChallenges(prev => prev.map(c => 
+      c.id === challengeId 
+        ? { ...c, completedByUserIds: [...c.completedByUserIds, currentUser.id] } 
+        : c
+    ));
+    
+    // Award points
+    setUsers(prev => prev.map(u => 
+      u.id === currentUser.id 
+        ? { ...u, points: u.points + challenge.points } 
+        : u
+    ));
+  };
+
   const sendDirectMessage = (senderId: number, receiverId: number, text: string) => {
     const sender = users.find(u => u.id === senderId);
     if (!sender) return;
@@ -195,6 +239,8 @@ const useMockData = () => {
     addSwimmer,
     addScheduleEvent,
     addTrainingPlan,
+    addChallenge,
+    completeChallenge,
     sendDirectMessage,
     sendAlert,
     dismissAlert,
@@ -202,7 +248,6 @@ const useMockData = () => {
     deleteScheduleEvent,
     awardBonusPoints,
     updateUserAvatar,
-    getAI,
   };
 };
 

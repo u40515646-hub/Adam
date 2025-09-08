@@ -51,11 +51,8 @@ const AuthScreen: React.FC = () => {
         }
         const success = createCaptain(captainName, captainPin, captainPassword);
         if (success) {
-            setSuccess('Captain account created! You can now log in.');
-            setCaptainName('');
-            setCaptainPin('');
-            setCaptainPassword('');
-            setActiveTab('login');
+            // Automatically log the new captain in
+            login(captainName, captainPin, Role.Captain, captainPassword);
         } else {
             setError('A user with this name already exists.');
         }
@@ -169,7 +166,7 @@ const AuthScreen: React.FC = () => {
 
             <div className="w-full max-w-md z-10">
                 <div className="text-center mb-8">
-                     <h1 className="text-5xl font-bold text-white tracking-wider">Swimsfans</h1>
+                     <h1 className="text-5xl font-bold text-white tracking-wider">Stormfins</h1>
                      <p className="text-gray-400 mt-2">Your Team's Digital Hub</p>
                 </div>
                 

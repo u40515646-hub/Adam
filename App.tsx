@@ -3,7 +3,6 @@ import useMockData from './hooks/useMockData';
 import AuthScreen from './components/AuthScreen';
 import Dashboard from './components/Dashboard';
 import { User, Role, ScheduleEvent, TrainingPlan, Challenge, ChatMessage } from './types';
-import { GoogleGenAI } from '@google/genai';
 
 interface AppContextType {
   currentUser: User | null;
@@ -20,6 +19,8 @@ interface AppContextType {
   addSwimmer: (name: string) => void;
   addScheduleEvent: (event: Omit<ScheduleEvent, 'id' | 'remindersSent'>) => void;
   addTrainingPlan: (plan: Omit<TrainingPlan, 'id'>) => void;
+  addChallenge: (challenge: Omit<Challenge, 'id' | 'completedByUserIds'>) => void;
+  completeChallenge: (challengeId: number) => void;
   sendDirectMessage: (senderId: number, receiverId: number, text: string) => void;
   sendAlert: (message: string) => void;
   dismissAlert: () => void;
@@ -27,7 +28,6 @@ interface AppContextType {
   deleteScheduleEvent: (eventId: number) => void;
   awardBonusPoints: (userId: number, points: number, pin: string) => boolean;
   updateUserAvatar: (userId: number, avatarDataUrl: string) => void;
-  getAI: () => GoogleGenAI;
 }
 
 const AppContext = createContext<AppContextType | null>(null);

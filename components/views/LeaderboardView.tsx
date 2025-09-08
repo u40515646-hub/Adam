@@ -72,18 +72,18 @@ const LeaderboardView: React.FC = () => {
                         className={`flex items-center p-3 rounded-lg border-2 ${getRankColor(index)} animate-fade-in-up`}
                         style={{ animationDelay: `${index * 75}ms` }}
                     >
-                        <div className="flex items-center w-1/12">
-                            <span className="font-bold text-lg w-8 text-center">{getRankIcon(index)}</span>
+                        <div className="flex-shrink-0 w-8 text-center">
+                            <span className="font-bold text-lg">{getRankIcon(index)}</span>
                         </div>
-                        <div className="flex items-center space-x-4 flex-grow w-6/12">
+                        <div className="flex-grow flex items-center space-x-3 ml-3">
                             <Avatar user={swimmer} size="md" />
-                            <span className="font-semibold text-white">{swimmer.name}</span>
+                            <span className="font-semibold text-white truncate">{swimmer.name}</span>
                         </div>
-                        <div className="w-4/12 text-right">
+                        <div className="flex-shrink-0 text-right w-24">
                            <span className="font-bold text-lg text-primary">{swimmer.points.toLocaleString()} pts</span>
                         </div>
                          {currentUser?.role === Role.Captain && (
-                            <div className="w-1/12 text-right">
+                            <div className="flex-shrink-0 w-12 text-right">
                                <button 
                                    onClick={() => openAwardModal(swimmer.id)}
                                    className="p-2 rounded-full text-gray-400 hover:bg-primary/20 hover:text-primary transition-colors"
