@@ -10,7 +10,9 @@
       
       body {
         font-family: 'Poppins', sans-serif;
-        background-color: #0c0a1a;
+        background: linear-gradient(270deg, #0c0a1a, #1f1d33, #0c0a1a);
+        background-size: 200% 200%;
+        animation: background-pan 30s ease infinite;
         color: #e0e0e0;
         overflow-x: hidden;
       }
@@ -32,22 +34,29 @@
       }
 
       /* Animations */
-      @keyframes fade-in {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-      @keyframes fade-in-up {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      @keyframes pop-in {
-        from { opacity: 0; transform: scale(0.9); }
-        to { opacity: 1; transform: scale(1); }
+      @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes pop-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+      @keyframes slide-in-up { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes background-pan { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+      @keyframes fade-in-down { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes slide-in-left { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+      @keyframes slide-in-right { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+      @keyframes subtle-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+      @keyframes gradient-text-pan { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+      
+      .gradient-text {
+        background: linear-gradient(90deg, #a855f7, #ec4899, #38bdf8, #a855f7);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: gradient-text-pan 10s linear infinite;
       }
 
       .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
       .animate-fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }
       .animate-pop-in { animation: pop-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+      .animate-slide-in-up { animation: slide-in-up 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
     </style>
     <script>
       tailwind.config = {
@@ -73,20 +82,28 @@
               'fade-in': 'fade-in 0.5s ease-out forwards',
               'fade-in-up': 'fade-in-up 0.5s ease-out forwards',
                'pop-in': 'pop-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+               'pulse-glow': 'pulse-glow 2.5s infinite',
+               'slide-in-up': 'slide-in-up 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+               'background-pan': 'background-pan 30s ease infinite',
+               'fade-in-down': 'fade-in-down 0.5s ease-out forwards',
+               'slide-in-left': 'slide-in-left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+               'slide-in-right': 'slide-in-right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+               'subtle-bounce': 'subtle-bounce 0.5s ease-in-out',
             },
             keyframes: {
-              'fade-in': {
-                '0%': { opacity: '0' },
-                '100%': { opacity: '1' },
+              'fade-in': { '0%': { opacity: '0' }, '100%': { opacity: '1' }, },
+              'fade-in-up': { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' }, },
+              'pop-in': { '0%': { opacity: '0', transform: 'scale(0.9)' }, '100%': { opacity: '1', transform: 'scale(1)' }, },
+              'slide-in-up': { '0%': { opacity: '0', transform: 'translateY(50px)' }, '100%': { opacity: '1', transform: 'translateY(0)' }, },
+              'fade-in-down': { '0%': { opacity: '0', transform: 'translateY(-20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' }, },
+              'slide-in-left': { '0%': { opacity: '0', transform: 'translateX(-20px)' }, '100%': { opacity: '1', transform: 'translateX(0)' }, },
+              'slide-in-right': { '0%': { opacity: '0', transform: 'translateX(20px)' }, '100%': { opacity: '1', transform: 'translateX(0)' }, },
+              'subtle-bounce': { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-5px)' }, },
+              'pulse-glow': {
+                '0%, 100%': { transform: 'scale(1)', boxShadow: '0 0 0 0 rgba(168, 85, 247, 0.7)', },
+                '50%': { transform: 'scale(1.05)', boxShadow: '0 0 20px 10px rgba(168, 85, 247, 0)', },
               },
-              'fade-in-up': {
-                '0%': { opacity: '0', transform: 'translateY(20px)' },
-                '100%': { opacity: '1', transform: 'translateY(0)' },
-              },
-              'pop-in': {
-                '0%': { opacity: '0', transform: 'scale(0.9)' },
-                '100%': { opacity: '1', transform: 'scale(1)' },
-              },
+              'background-pan': { '0%': { backgroundPosition: '0% 50%' }, '50%': { backgroundPosition: '100% 50%' }, '100%': { backgroundPosition: '0% 50%' }, },
             }
           }
         }

@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { User, Role, ScheduleEvent, TrainingPlan, Challenge, ChatMessage } from '../types';
+import { useState, useEffect } from 'react';
+import { User, Role, ScheduleEvent, TrainingPlan, Award, GrantedAward, ChatMessage } from '../types';
 
 const initialUsers: User[] = [
   {
@@ -19,236 +19,300 @@ const initialUsers: User[] = [
 const initialSchedule: ScheduleEvent[] = [];
 const initialTrainingPlans: TrainingPlan[] = [];
 const initialConversations: Record<string, ChatMessage[]> = {};
-const initialChallenges: Challenge[] = [
-  {
-    id: 1,
-    title: 'Perfect Attendance Week',
-    description: 'Attend every scheduled practice for a full week.',
-    points: 50,
-    completedByUserIds: [1],
-  },
-  {
-    id: 2,
-    title: 'Personal Best',
-    description: 'Beat your personal best time in any stroke during a timed practice.',
-    points: 100,
-    completedByUserIds: [],
-  },
-  {
-    id: 3,
-    title: 'Early Bird',
-    description: 'Be the first one in the pool for 3 consecutive practices.',
-    points: 75,
-    completedByUserIds: [],
-  }
+
+const predefinedAwards: Award[] = [
+    { id: 1, title: 'Iron Will', description: 'For pushing through an exceptionally tough training set.', icon: 'bolt', points: 75 },
+    { id: 2, title: 'Perfect Form', description: 'Demonstrated flawless technique during practice.', icon: 'star', points: 50 },
+    { id: 3, title: 'Team Spirit', description: 'Showed great sportsmanship and motivated others.', icon: 'heart', points: 50 },
+    { id: 4, title: 'Milestone Breaker', description: 'Achieved a new personal best or team record.', icon: 'trophy', points: 100 },
+    { id: 5, title: 'Punctuality King/Queen', description: 'Perfect attendance and always on time.', icon: 'dashboard', points: 25 },
+    { id: 6, title: 'The Strategist', description: 'For smart racing or excellent strategic thinking.', icon: 'team', points: 60 },
+    { id: 7, title: 'Mentorship Award', description: 'Helped a teammate improve or learn a new skill.', icon: 'profile', points: 40 },
+    { id: 8, title: 'Comeback Kid', description: 'Showed incredible resilience and recovery from a setback.', icon: 'leaderboard', points: 80 },
 ];
 
-const useMockData = () => {
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [schedule, setSchedule] = useState<ScheduleEvent[]>(initialSchedule);
-  const [trainingPlans, setTrainingPlans] = useState<TrainingPlan[]>(initialTrainingPlans);
-  const [conversations, setConversations] = useState<Record<string, ChatMessage[]>>(initialConversations);
-  const [challenges, setChallenges] = useState<Challenge[]>(initialChallenges);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [alert, setAlert] = useState<string | null>(null);
+const STORAGE_KEY = 'stormfinsAppState';
 
-  const login = (name: string, pinOrPassword: string, role: Role, captainPassword?: string): boolean => {
-    const user = users.find(u => u.name.toLowerCase() === name.toLowerCase() && u.role === role);
-    if (user && user.isActive) {
-      if (role === Role.Captain && user.pin === pinOrPassword && user.password === captainPassword) {
-        setCurrentUser(user);
-        return true;
-      }
-      if (role === Role.Player && user.password === pinOrPassword) {
-        setCurrentUser(user);
-        return true;
-      }
-    }
-    return false;
-  };
-
-  const logout = () => {
-    setCurrentUser(null);
-  };
-
-  const activateSwimmer = (name: string, password: string): boolean => {
-    const userIndex = users.findIndex(u => u.name.toLowerCase() === name.toLowerCase() && u.role === Role.Player && !u.isActive);
-    if (userIndex !== -1) {
-      const updatedUsers = [...users];
-      updatedUsers[userIndex] = { ...updatedUsers[userIndex], password, isActive: true };
-      setUsers(updatedUsers);
-      return true;
-    }
-    return false;
-  };
-  
-  const createCaptain = (name: string, pin: string, password: string): boolean => {
-    if (users.some(u => u.name.toLowerCase() === name.toLowerCase())) {
-        return false; // User already exists
-    }
-    const newCaptain: User = {
-        id: Date.now(),
-        name,
-        pin,
-        password,
-        role: Role.Captain,
-        isActive: true,
-        age: 30, // Default age
-        avatar: '',
-        stats: { attendance: 0, topSpeed: 0, endurance: 0 },
-        points: 0,
-    };
-    setUsers(prev => [...prev, newCaptain]);
-    return true;
-  };
-
-  const addSwimmer = (name: string) => {
-    if (users.some(u => u.name.toLowerCase() === name.toLowerCase())) return;
-    const newSwimmer: User = {
-      id: Date.now(),
-      name,
-      role: Role.Player,
-      isActive: false,
-      age: 18,
-      avatar: '',
-      stats: { attendance: 0, topSpeed: 0, endurance: 0 },
-      points: 0,
-    };
-    setUsers(prev => [...prev, newSwimmer]);
-  };
-
-  const addScheduleEvent = (event: Omit<ScheduleEvent, 'id' | 'remindersSent'>) => {
-    const newEvent: ScheduleEvent = {
-      ...event,
-      id: Date.now(),
-      remindersSent: false,
-    };
-    setSchedule(prev => [...prev, newEvent].sort((a,b) => a.dayOfWeek - b.dayOfWeek || a.time.localeCompare(b.time)));
-  };
-
-  const addTrainingPlan = (plan: Omit<TrainingPlan, 'id'>) => {
-    const newPlan: TrainingPlan = {
-      ...plan,
-      id: Date.now(),
-    };
-    setTrainingPlans(prev => [...prev, newPlan]);
-  };
-  
-  const addChallenge = (challenge: Omit<Challenge, 'id' | 'completedByUserIds'>) => {
-    if (currentUser?.role !== Role.Captain) return;
-    const newChallenge: Challenge = {
-      ...challenge,
-      id: Date.now(),
-      completedByUserIds: [],
-    };
-    setChallenges(prev => [newChallenge, ...prev]);
-  };
-
-  const completeChallenge = (challengeId: number) => {
-    if (!currentUser) return;
-    const challenge = challenges.find(c => c.id === challengeId);
-    if (!challenge || challenge.completedByUserIds.includes(currentUser.id)) return;
-    
-    // Mark challenge as complete
-    setChallenges(prev => prev.map(c => 
-      c.id === challengeId 
-        ? { ...c, completedByUserIds: [...c.completedByUserIds, currentUser.id] } 
-        : c
-    ));
-    
-    // Award points
-    setUsers(prev => prev.map(u => 
-      u.id === currentUser.id 
-        ? { ...u, points: u.points + challenge.points } 
-        : u
-    ));
-  };
-
-  const sendDirectMessage = (senderId: number, receiverId: number, text: string) => {
-    const sender = users.find(u => u.id === senderId);
-    if (!sender) return;
-
-    const conversationId = [senderId, receiverId].sort().join('-');
-    const newMessage: ChatMessage = {
-        id: Date.now(),
-        userId: senderId,
-        userName: sender.name,
-        avatar: sender.avatar,
-        text,
-        timestamp: new Date(),
-    };
-
-    setConversations(prev => {
-        const updatedConversations = { ...prev };
-        if (!updatedConversations[conversationId]) {
-            updatedConversations[conversationId] = [];
+const getInitialState = () => {
+    try {
+        const storedState = localStorage.getItem(STORAGE_KEY);
+        if (storedState) {
+            const parsedState = JSON.parse(storedState);
+            // Re-hydrate Date objects from JSON strings
+            if (parsedState.conversations) {
+                Object.values(parsedState.conversations).forEach((convo: any) => {
+                    convo.forEach((msg: ChatMessage) => {
+                        msg.timestamp = new Date(msg.timestamp);
+                    });
+                });
+            }
+            if (parsedState.grantedAwards) {
+                parsedState.grantedAwards.forEach((award: GrantedAward) => {
+                    award.timestamp = new Date(award.timestamp);
+                });
+            }
+            return parsedState;
         }
-        updatedConversations[conversationId].push(newMessage);
-        return updatedConversations;
-    });
-  };
-
-  const sendAlert = (message: string) => {
-    setAlert(message);
-  };
-  const dismissAlert = () => {
-    setAlert(null);
-  };
-
-  const deleteUser = (userId: number, pin: string): boolean => {
-    if (currentUser?.role !== Role.Captain || currentUser.pin !== pin) {
-      return false;
+    } catch (error) {
+        console.error("Failed to parse state from localStorage", error);
     }
-    setUsers(prev => prev.filter(u => u.id !== userId));
-    return true;
-  };
+    // Return initial state if nothing in localStorage or if parsing fails
+    return {
+        users: initialUsers,
+        schedule: initialSchedule,
+        trainingPlans: initialTrainingPlans,
+        conversations: initialConversations,
+        grantedAwards: [],
+        currentUser: null,
+        unreadCounts: {},
+    };
+};
 
-  const deleteScheduleEvent = (eventId: number) => {
-    if (currentUser?.role !== Role.Captain) return;
-    setSchedule(prev => prev.filter(e => e.id !== eventId));
-  };
 
-  const awardBonusPoints = (userId: number, points: number, pin: string): boolean => {
-    if (currentUser?.role !== Role.Captain || currentUser.pin !== pin) {
-      return false;
-    }
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, points: u.points + points } : u));
-    return true;
-  };
+const useMockData = () => {
+    const [appState, setAppState] = useState(getInitialState);
+    const [alert, setAlert] = useState<string | null>(null);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        } catch (error) {
+            console.error("Failed to save state to localStorage", error);
+        }
+    }, [appState]);
+
+    const {
+        users,
+        schedule,
+        trainingPlans,
+        conversations,
+        grantedAwards,
+        currentUser,
+        unreadCounts,
+    } = appState;
+
+    const login = (name: string, pinOrPassword: string, role: Role, captainPassword?: string): boolean => {
+        const trimmedName = name.trim();
+        const user = users.find(u => u.name.toLowerCase() === trimmedName.toLowerCase() && u.role === role);
+        if (user && user.isActive) {
+            if (role === Role.Captain && user.pin === pinOrPassword && user.password === captainPassword) {
+                setAppState(prev => ({ ...prev, currentUser: user }));
+                return true;
+            }
+            if (role === Role.Player && user.password === pinOrPassword) {
+                setAppState(prev => ({ ...prev, currentUser: user }));
+                return true;
+            }
+        }
+        return false;
+    };
+
+    const logout = () => {
+        setAppState(prev => ({ ...prev, currentUser: null }));
+    };
+
+    const activateSwimmer = (name: string, password: string): boolean => {
+        const trimmedName = name.trim();
+        const userIndex = users.findIndex(u => u.name.toLowerCase() === trimmedName.toLowerCase() && u.role === Role.Player && !u.isActive);
+        if (userIndex !== -1) {
+            setAppState(prev => {
+                const updatedUsers = [...prev.users];
+                updatedUsers[userIndex] = { ...updatedUsers[userIndex], password, isActive: true };
+                return { ...prev, users: updatedUsers };
+            });
+            return true;
+        }
+        return false;
+    };
   
-  const updateUserAvatar = (userId: number, avatarDataUrl: string) => {
-    setUsers(prevUsers => 
-      prevUsers.map(user => 
-        user.id === userId ? { ...user, avatar: avatarDataUrl } : user
-      )
-    );
-  };
+    const createCaptain = (name: string, pin: string, password: string): boolean => {
+        const trimmedName = name.trim();
+        if (users.some(u => u.name.toLowerCase() === trimmedName.toLowerCase())) {
+            return false; // User already exists
+        }
+        const newCaptain: User = {
+            id: Date.now(),
+            name: trimmedName,
+            pin,
+            password,
+            role: Role.Captain,
+            isActive: true,
+            age: 30, // Default age
+            avatar: '',
+            stats: { attendance: 0, topSpeed: 0, endurance: 0 },
+            points: 0,
+        };
+        setAppState(prev => ({ ...prev, users: [...prev.users, newCaptain] }));
+        return true;
+    };
 
-  return {
-    currentUser,
-    users,
-    schedule,
-    trainingPlans,
-    challenges,
-    conversations,
-    alert,
-    login,
-    logout,
-    activateSwimmer,
-    createCaptain,
-    addSwimmer,
-    addScheduleEvent,
-    addTrainingPlan,
-    addChallenge,
-    completeChallenge,
-    sendDirectMessage,
-    sendAlert,
-    dismissAlert,
-    deleteUser,
-    deleteScheduleEvent,
-    awardBonusPoints,
-    updateUserAvatar,
-  };
+    const addSwimmer = (name: string) => {
+        const trimmedName = name.trim();
+        if (users.some(u => u.name.toLowerCase() === trimmedName.toLowerCase())) return;
+        const newSwimmer: User = {
+            id: Date.now(),
+            name: trimmedName,
+            role: Role.Player,
+            isActive: false,
+            age: 18,
+            avatar: '',
+            stats: { attendance: 0, topSpeed: 0, endurance: 0 },
+            points: 0,
+        };
+        setAppState(prev => ({ ...prev, users: [...prev.users, newSwimmer] }));
+    };
+
+    const addScheduleEvent = (event: Omit<ScheduleEvent, 'id' | 'remindersSent'>) => {
+        const newEvent: ScheduleEvent = {
+            ...event,
+            id: Date.now(),
+            remindersSent: false,
+        };
+        setAppState(prev => ({
+            ...prev,
+            schedule: [...prev.schedule, newEvent].sort((a,b) => a.dayOfWeek - b.dayOfWeek || a.time.localeCompare(b.time))
+        }));
+    };
+
+    const addTrainingPlan = (plan: Omit<TrainingPlan, 'id'>) => {
+        const newPlan: TrainingPlan = {
+            ...plan,
+            id: Date.now(),
+        };
+        setAppState(prev => ({ ...prev, trainingPlans: [...prev.trainingPlans, newPlan] }));
+    };
+  
+    const grantAward = (userId: number, awardId: number, reason: string): boolean => {
+        if (currentUser?.role !== Role.Captain) return false;
+        const awardToGrant = predefinedAwards.find(a => a.id === awardId);
+        if (!awardToGrant) return false;
+
+        const newGrantedAward: GrantedAward = {
+            id: Date.now(),
+            award: awardToGrant,
+            userId,
+            reason,
+            grantedByUserId: currentUser.id,
+            grantedByUserName: currentUser.name,
+            timestamp: new Date(),
+        };
+        setAppState(prev => ({
+            ...prev,
+            grantedAwards: [...prev.grantedAwards, newGrantedAward],
+            users: prev.users.map(u => u.id === userId ? { ...u, points: u.points + awardToGrant.points } : u)
+        }));
+        return true;
+    };
+
+    const sendDirectMessage = (senderId: number, receiverId: number, text: string) => {
+        const sender = users.find(u => u.id === senderId);
+        if (!sender) return;
+
+        const conversationId = [senderId, receiverId].sort().join('-');
+        const newMessage: ChatMessage = {
+            id: Date.now(),
+            userId: senderId,
+            userName: sender.name,
+            avatar: sender.avatar,
+            text,
+            timestamp: new Date(),
+        };
+
+        setAppState(prev => {
+            const updatedConversations = { ...prev.conversations };
+            if (!updatedConversations[conversationId]) {
+                updatedConversations[conversationId] = [];
+            }
+            updatedConversations[conversationId].push(newMessage);
+            return {
+                ...prev,
+                conversations: updatedConversations,
+                unreadCounts: {
+                    ...prev.unreadCounts,
+                    [receiverId]: (prev.unreadCounts[receiverId] || 0) + 1,
+                }
+            };
+        });
+    };
+
+    const sendAlert = (message: string) => {
+        setAlert(message);
+    };
+    const dismissAlert = () => {
+        setAlert(null);
+    };
+
+    const deleteUser = (userId: number, pin: string): boolean => {
+        if (currentUser?.role !== Role.Captain || currentUser.pin !== pin) {
+            return false;
+        }
+        setAppState(prev => ({ ...prev, users: prev.users.filter(u => u.id !== userId) }));
+        return true;
+    };
+
+    const deleteScheduleEvent = (eventId: number) => {
+        if (currentUser?.role !== Role.Captain) return;
+        setAppState(prev => ({ ...prev, schedule: prev.schedule.filter(e => e.id !== eventId) }));
+    };
+
+    const awardBonusPoints = (userId: number, points: number, pin: string): boolean => {
+        if (currentUser?.role !== Role.Captain || currentUser.pin !== pin) {
+            return false;
+        }
+        setAppState(prev => ({
+            ...prev,
+            users: prev.users.map(u => (u.id === userId ? { ...u, points: u.points + points } : u))
+        }));
+        return true;
+    };
+
+    const updateUserAvatar = (userId: number, avatarDataUrl: string) => {
+        setAppState(prev => {
+            const updatedUsers = prev.users.map(u => u.id === userId ? { ...u, avatar: avatarDataUrl } : u);
+            const updatedCurrentUser = prev.currentUser?.id === userId
+                ? { ...prev.currentUser, avatar: avatarDataUrl }
+                : prev.currentUser;
+            return { ...prev, users: updatedUsers, currentUser: updatedCurrentUser };
+        });
+    };
+
+    const clearChatNotifications = (userId: number) => {
+        setAppState(prev => {
+            const newCounts = { ...prev.unreadCounts };
+            if (newCounts[userId]) {
+                delete newCounts[userId];
+            }
+            return { ...prev, unreadCounts: newCounts };
+        });
+    };
+
+    return {
+        currentUser,
+        users,
+        schedule,
+        trainingPlans,
+        predefinedAwards,
+        grantedAwards,
+        conversations,
+        alert,
+        unreadCounts,
+        login,
+        logout,
+        activateSwimmer,
+        createCaptain,
+        addSwimmer,
+        addScheduleEvent,
+        addTrainingPlan,
+        grantAward,
+        sendDirectMessage,
+        sendAlert,
+        dismissAlert,
+        deleteUser,
+        deleteScheduleEvent,
+        awardBonusPoints,
+        updateUserAvatar,
+        clearChatNotifications,
+    };
 };
 
 export default useMockData;

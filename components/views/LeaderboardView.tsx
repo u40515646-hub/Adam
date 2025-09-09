@@ -69,18 +69,18 @@ const LeaderboardView: React.FC = () => {
                 {sortedSwimmers.map((swimmer, index) => (
                     <li 
                         key={swimmer.id}
-                        className={`flex items-center p-3 rounded-lg border-2 ${getRankColor(index)} animate-fade-in-up`}
+                        className={`flex items-center p-3 rounded-lg border-2 group ${getRankColor(index)} animate-fade-in-up`}
                         style={{ animationDelay: `${index * 75}ms` }}
                     >
                         <div className="flex-shrink-0 w-8 text-center">
-                            <span className="font-bold text-lg">{getRankIcon(index)}</span>
+                            <span className="font-bold text-lg transition-transform duration-300 group-hover:scale-125 inline-block">{getRankIcon(index)}</span>
                         </div>
                         <div className="flex-grow flex items-center space-x-3 ml-3">
                             <Avatar user={swimmer} size="md" />
                             <span className="font-semibold text-white truncate">{swimmer.name}</span>
                         </div>
                         <div className="flex-shrink-0 text-right w-24">
-                           <span className="font-bold text-lg text-primary">{swimmer.points.toLocaleString()} pts</span>
+                           <span className="font-bold text-lg text-primary transition-all group-hover:text-primary-focus group-hover:drop-shadow-[0_0_5px_var(--tw-shadow-color)] shadow-primary">{swimmer.points.toLocaleString()} pts</span>
                         </div>
                          {currentUser?.role === Role.Captain && (
                             <div className="flex-shrink-0 w-12 text-right">

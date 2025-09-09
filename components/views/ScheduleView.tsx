@@ -22,10 +22,11 @@ const ScheduleView: React.FC = () => {
 
 
     const getEventTypeIcon = (type: 'Training' | 'Competition' | 'Meeting') => {
+        const baseClasses = "w-5 h-5 transition-transform duration-300 group-hover:scale-125";
         switch (type) {
-            case 'Training': return <Icon name="dashboard" className="w-5 h-5 text-accent" />;
-            case 'Competition': return <Icon name="leaderboard" className="w-5 h-5 text-secondary" />;
-            case 'Meeting': return <Icon name="team" className="w-5 h-5 text-primary" />;
+            case 'Training': return <Icon name="dashboard" className={`${baseClasses} text-accent`} />;
+            case 'Competition': return <Icon name="leaderboard" className={`${baseClasses} text-secondary`} />;
+            case 'Meeting': return <Icon name="team" className={`${baseClasses} text-primary`} />;
         }
     }
     
@@ -51,7 +52,7 @@ const ScheduleView: React.FC = () => {
                         {day.events.map((event, eventIndex) => (
                              <li 
                                 key={event.id}
-                                className="flex items-center justify-between bg-base-200/50 p-4 rounded-lg animate-fade-in-up"
+                                className="flex items-center justify-between bg-base-200/50 p-4 rounded-lg animate-fade-in-up group"
                                 style={{ animationDelay: `${(dayIndex * 100) + (eventIndex * 50)}ms`}}
                             >
                                 <div className="flex items-center space-x-4">

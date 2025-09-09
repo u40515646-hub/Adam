@@ -45,10 +45,20 @@ export interface ChatMessage {
     timestamp: Date;
 }
 
-export interface Challenge {
+export interface Award {
+  id: number;
+  title: string;
+  description: string;
+  icon: 'trophy' | 'star' | 'bolt' | 'heart' | 'dashboard' | 'team' | 'profile' | 'leaderboard';
+  points: number;
+}
+
+export interface GrantedAward {
     id: number;
-    title: string;
-    description: string;
-    points: number;
-    completedByUserIds: number[];
+    award: Award;
+    userId: number;
+    grantedByUserId: number;
+    grantedByUserName: string;
+    timestamp: Date;
+    reason: string;
 }

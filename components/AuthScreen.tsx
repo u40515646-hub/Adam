@@ -7,6 +7,7 @@ import Icon from './common/Icon';
 const AuthScreen: React.FC = () => {
     const { login, activateSwimmer, createCaptain } = useApp();
     const [activeTab, setActiveTab] = useState<'login' | 'createCaptain' | 'activateSwimmer'>('login');
+    const [showOnboarding, setShowOnboarding] = useState(true);
     
     // Login State
     const [loginRole, setLoginRole] = useState<Role>(Role.Player);
@@ -31,7 +32,7 @@ const AuthScreen: React.FC = () => {
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
-        const success = login(loginName, loginPinOrPassword, loginRole, loginCaptainPassword);
+        const success = login(loginName.trim(), loginPinOrPassword, loginRole, loginCaptainPassword);
         if (!success) {
             setError('Invalid credentials. Please try again.');
         }
@@ -49,10 +50,11 @@ const AuthScreen: React.FC = () => {
             setError('PIN must be exactly 4 digits.');
             return;
         }
-        const success = createCaptain(captainName, captainPin, captainPassword);
+        const trimmedName = captainName.trim();
+        const success = createCaptain(trimmedName, captainPin, captainPassword);
         if (success) {
-            // Automatically log the new captain in
-            login(captainName, captainPin, Role.Captain, captainPassword);
+            setSuccess('Account created successfully! Logging you in...');
+            login(trimmedName, captainPin, Role.Captain, captainPassword);
         } else {
             setError('A user with this name already exists.');
         }
@@ -70,18 +72,36 @@ const AuthScreen: React.FC = () => {
             setError('Password must be at least 6 characters long.');
             return;
         }
-        const success = activateSwimmer(swimmerName, swimmerPassword);
+        const trimmedName = swimmerName.trim();
+        const success = activateSwimmer(trimmedName, swimmerPassword);
         if (success) {
-            setSuccess('Account activated successfully! You can now log in.');
-            setSwimmerName('');
-            setSwimmerPassword('');
-            setSwimmerConfirmPassword('');
-            setActiveTab('login');
+            setSuccess('Account activated successfully! Logging you in...');
+            login(trimmedName, swimmerPassword, Role.Player);
         } else {
             setError('Could not activate account. Make sure your name is correct and the account is not already active.');
         }
     };
     
+    if (showOnboarding) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-base-100 p-4 animate-fade-in">
+                <div className="text-center max-w-2xl">
+                    <h1 className="text-5xl font-bold text-white mb-4">Welcome to <span className="gradient-text">Stormfins</span></h1>
+                    <p className="text-lg text-gray-300 mb-8 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                        The ultimate digital platform for your swimming team. Manage schedules, track performance, and communicate seamlessly. Everything you need, all in one place.
+                    </p>
+                    <button 
+                        onClick={() => setShowOnboarding(false)}
+                        className="bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 px-6 rounded-full hover:opacity-90 transition-all duration-300 shadow-lg text-lg transform hover:scale-105 animate-fade-in-up"
+                        style={{ animationDelay: '400ms' }}
+                    >
+                        Get Started
+                    </button>
+                </div>
+            </div>
+        )
+    }
+
     const renderForm = () => {
         switch (activeTab) {
             case 'login':
@@ -93,90 +113,89 @@ const AuthScreen: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
-                            <input type="text" value={loginName} onChange={e => setLoginName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none" required />
+                            <input type="text" value={loginName} onChange={e => setLoginName(e.target.value)} required className="w-full bg-base-300 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none transition-shadow" />
                         </div>
-                        {loginRole === Role.Captain ? (
-                            <>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">PIN</label>
-                                    <input type="password" placeholder="4-Digit PIN" value={loginPinOrPassword} onChange={e => setLoginPinOrPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none" required maxLength={4} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
-                                    <input type="password" placeholder="Password" value={loginCaptainPassword} onChange={e => setLoginCaptainPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none" required />
-                                </div>
-                            </>
-                        ) : (
+                        {loginRole === Role.Player ? (
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
-                                <input type="password" value={loginPinOrPassword} onChange={e => setLoginPinOrPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none" required />
+                                <input type="password" value={loginPinOrPassword} onChange={e => setLoginPinOrPassword(e.target.value)} required className="w-full bg-base-300 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none transition-shadow" />
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">4-Digit PIN</label>
+                                    <input type="password" value={loginPinOrPassword} onChange={e => setLoginPinOrPassword(e.target.value)} required maxLength={4} className="w-full bg-base-300 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none transition-shadow" />
+                                </div>
+                                 <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                                    <input type="password" value={loginCaptainPassword} onChange={e => setLoginCaptainPassword(e.target.value)} required className="w-full bg-base-300 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none transition-shadow" />
+                                </div>
                             </div>
                         )}
-                        <button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition-opacity duration-300 shadow-lg">Login</button>
+                         <button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition-all duration-300 shadow-lg transform hover:scale-105">Login</button>
                     </form>
                 );
             case 'createCaptain':
                  return (
-                    <form onSubmit={handleCreateCaptain} className="space-y-6">
+                    <form onSubmit={handleCreateCaptain} className="space-y-4">
+                        <p className="text-sm text-gray-400 text-center">Create a new captain account to manage your team.</p>
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">Captain Name</label>
-                            <input type="text" value={captainName} onChange={e => setCaptainName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none" required />
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+                            <input type="text" value={captainName} onChange={e => setCaptainName(e.target.value)} required className="w-full bg-base-300 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none transition-shadow" />
                         </div>
-                        <div className="flex space-x-4">
-                            <div className="w-1/2">
-                                <label className="block text-sm font-medium text-gray-300 mb-2">4-Digit PIN</label>
-                                <input type="password" value={captainPin} onChange={e => setCaptainPin(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none" required maxLength={4} />
-                            </div>
-                            <div className="w-1/2">
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
-                                <input type="password" value={captainPassword} onChange={e => setCaptainPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none" required />
-                            </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">4-Digit PIN</label>
+                            <input type="password" value={captainPin} onChange={e => setCaptainPin(e.target.value)} required maxLength={4} className="w-full bg-base-300 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none transition-shadow" />
                         </div>
-                        <button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition-opacity duration-300 shadow-lg">Create Account</button>
+                         <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Master Password</label>
+                            <input type="password" value={captainPassword} onChange={e => setCaptainPassword(e.target.value)} required className="w-full bg-base-300 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none transition-shadow" />
+                        </div>
+                         <button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition-all duration-300 shadow-lg transform hover:scale-105">Create Account</button>
                     </form>
                 );
             case 'activateSwimmer':
-                return (
-                    <form onSubmit={handleActivateSwimmer} className="space-y-6">
+                 return (
+                    <form onSubmit={handleActivateSwimmer} className="space-y-4">
+                        <p className="text-sm text-gray-400 text-center">Activate your account to get started.</p>
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">Full Name (as added by Captain)</label>
-                            <input type="text" value={swimmerName} onChange={e => setSwimmerName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none" required />
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Full Name (as added by your captain)</label>
+                            <input type="text" value={swimmerName} onChange={e => setSwimmerName(e.target.value)} required className="w-full bg-base-300 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none transition-shadow" />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">New Password</label>
-                            <input type="password" value={swimmerPassword} onChange={e => setSwimmerPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none" required />
+                            <label className="block text-sm font-medium text-gray-300 mb-2">Create New Password</label>
+                            <input type="password" value={swimmerPassword} onChange={e => setSwimmerPassword(e.target.value)} required className="w-full bg-base-300 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none transition-shadow" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-2">Confirm New Password</label>
-                            <input type="password" value={swimmerConfirmPassword} onChange={e => setSwimmerConfirmPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none" required />
+                            <input type="password" value={swimmerConfirmPassword} onChange={e => setSwimmerConfirmPassword(e.target.value)} required className="w-full bg-base-300 border border-white/10 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none transition-shadow" />
                         </div>
-                        <button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition-opacity duration-300 shadow-lg">Activate Account</button>
+                         <button type="submit" className="w-full bg-gradient-to-r from-primary to-secondary text-white font-bold py-3 px-4 rounded-lg hover:opacity-90 transition-all duration-300 shadow-lg transform hover:scale-105">Activate Account</button>
                     </form>
                 );
         }
-    };
+    }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-base-100 animate-fade-in relative overflow-hidden">
-             <div className="absolute top-0 left-0 w-72 h-72 bg-primary rounded-full filter blur-3xl opacity-20 animate-pulse"></div>
-             <div className="absolute bottom-0 right-0 w-72 h-72 bg-secondary rounded-full filter blur-3xl opacity-20 animate-pulse animation-delay-4000"></div>
-
+        <div className="min-h-screen flex items-center justify-center bg-base-100 p-4">
             <Notification message={error} type="error" onDismiss={() => setError(null)} />
             <Notification message={success} type="success" onDismiss={() => setSuccess(null)} />
-
-            <div className="w-full max-w-md z-10">
-                <div className="text-center mb-8">
-                     <h1 className="text-5xl font-bold text-white tracking-wider">Stormfins</h1>
-                     <p className="text-gray-400 mt-2">Your Team's Digital Hub</p>
+            <div className="w-full max-w-md mx-auto">
+                 <div className="text-center mb-8 animate-fade-in-down">
+                    <h1 className="text-4xl font-bold gradient-text">Stormfins</h1>
                 </div>
-                
+
                 <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl p-8 animate-pop-in">
-                    <div className="flex border-b border-white/10 mb-6">
-                        <button onClick={() => setActiveTab('login')} className={`flex-1 pb-3 text-sm font-semibold transition-colors duration-300 ${activeTab === 'login' ? 'text-white border-b-2 border-primary' : 'text-gray-400 hover:text-white'}`}>Login</button>
-                        <button onClick={() => setActiveTab('createCaptain')} className={`flex-1 pb-3 text-sm font-semibold transition-colors duration-300 ${activeTab === 'createCaptain' ? 'text-white border-b-2 border-primary' : 'text-gray-400 hover:text-white'}`}>Create Captain</button>
-                        <button onClick={() => setActiveTab('activateSwimmer')} className={`flex-1 pb-3 text-sm font-semibold transition-colors duration-300 ${activeTab === 'activateSwimmer' ? 'text-white border-b-2 border-primary' : 'text-gray-400 hover:text-white'}`}>Activate Swimmer</button>
+                    <div className="mb-6">
+                        <div className="flex border-b border-white/10">
+                            <button onClick={() => setActiveTab('login')} className={`flex-1 py-3 text-sm font-semibold transition-colors duration-300 ${activeTab === 'login' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-white'}`}>Login</button>
+                            <button onClick={() => setActiveTab('activateSwimmer')} className={`flex-1 py-3 text-sm font-semibold transition-colors duration-300 ${activeTab === 'activateSwimmer' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-white'}`}>Activate</button>
+                            <button onClick={() => setActiveTab('createCaptain')} className={`flex-1 py-3 text-sm font-semibold transition-colors duration-300 ${activeTab === 'createCaptain' ? 'text-primary border-b-2 border-primary' : 'text-gray-400 hover:text-white'}`}>New Captain</button>
+                        </div>
                     </div>
-                    {renderForm()}
+                    <div className="animate-fade-in">
+                       {renderForm()}
+                    </div>
                 </div>
             </div>
         </div>

@@ -58,7 +58,7 @@ const TeamView: React.FC = () => {
             style={{ animationDelay: `${index * 75}ms`}}
         >
             <div className="flex items-center space-x-4">
-                <Avatar user={user} size="lg" />
+                <Avatar user={user} size="lg" className="transition-transform duration-300 group-hover:scale-105" />
                 <div>
                     <p className="font-bold text-lg text-white">{user.name}</p>
                     <div className={`text-xs font-semibold px-2 py-1 rounded-full inline-block ${user.isActive ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'}`}>
@@ -84,7 +84,7 @@ const TeamView: React.FC = () => {
                 <div className="mb-6 text-right">
                     <button 
                         onClick={() => setAddModalOpen(true)}
-                        className="bg-primary hover:bg-primary-focus text-white font-bold py-2 px-4 rounded-lg inline-flex items-center transition-colors"
+                        className="bg-primary hover:bg-primary-focus text-white font-bold py-2 px-4 rounded-lg inline-flex items-center transition-all transform hover:scale-105"
                     >
                          <Icon name="plus" className="w-5 h-5 mr-2"/>
                         Add Swimmer

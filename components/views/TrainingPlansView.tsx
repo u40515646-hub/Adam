@@ -19,46 +19,53 @@ const TrainingPlansView: React.FC = () => {
         setNewPlan({ title: '', description: '', focus: '' });
         setIsModalOpen(false);
     };
-
-    if (trainingPlans.length === 0 && currentUser?.role !== Role.Captain) {
+    
+    if (currentUser?.role !== Role.Captain) {
         return (
             <Card className="text-center animate-fade-in-up">
-                <h2 className="text-2xl font-bold text-white mb-2">No Training Plans Available</h2>
-                <p className="text-gray-400">The captain has not added any training plans yet.</p>
+                <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
+                <p className="text-gray-400">This section is for captains only.</p>
             </Card>
         );
     }
     
     return (
-        <div>
-             {currentUser?.role === Role.Captain && (
-                <div className="mb-6 text-right">
-                    <button 
-                        onClick={() => setIsModalOpen(true)}
-                        className="bg-primary hover:bg-primary-focus text-white font-bold py-2 px-4 rounded-lg inline-flex items-center transition-colors"
-                    >
-                        <Icon name="plus" className="w-5 h-5 mr-2"/>
-                        Add Training Plan
-                    </button>
+        <div className="relative min-h-[calc(100vh-200px)]">
+            {trainingPlans.length === 0 ? (
+                <Card className="text-center animate-fade-in-up">
+                    <h2 className="text-2xl font-bold text-white mb-2">No Training Plans Yet</h2>
+                    <p className="text-gray-400">Click the + button to create the first one.</p>
+                </Card>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {trainingPlans.map((plan, index) => (
+                        <Card 
+                            key={plan.id}
+                            className="flex flex-col animate-fade-in-up"
+                            style={{ animationDelay: `${index * 100}ms` }}
+                        >
+                            <div className="flex justify-between items-start">
+                                <h3 className="text-xl font-bold text-white mb-2">{plan.title}</h3>
+                                <Icon name="dashboard" className="w-6 h-6 text-primary/50 transition-transform duration-300 group-hover:scale-110" />
+                            </div>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                {plan.focus.map(f => (
+                                    <span key={f} className="text-xs font-semibold bg-accent/20 text-accent px-2 py-1 rounded-full">{f}</span>
+                                ))}
+                            </div>
+                            <p className="text-gray-400 flex-grow">{plan.description}</p>
+                        </Card>
+                    ))}
                 </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {trainingPlans.map((plan, index) => (
-                    <Card 
-                        key={plan.id}
-                        className="flex flex-col animate-fade-in-up"
-                        style={{ animationDelay: `${index * 100}ms` }}
-                    >
-                        <h3 className="text-xl font-bold text-white mb-2">{plan.title}</h3>
-                        <div className="flex flex-wrap gap-2 mb-4">
-                            {plan.focus.map(f => (
-                                <span key={f} className="text-xs font-semibold bg-accent/20 text-accent px-2 py-1 rounded-full">{f}</span>
-                            ))}
-                        </div>
-                        <p className="text-gray-400 flex-grow">{plan.description}</p>
-                    </Card>
-                ))}
-            </div>
+
+            <button 
+                onClick={() => setIsModalOpen(true)}
+                className="group fixed bottom-8 right-8 bg-gradient-to-r from-primary to-secondary text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform z-20 animate-pulse-glow"
+                aria-label="Add Training Plan"
+            >
+                <Icon name="plus" className="w-8 h-8 transition-transform duration-300 group-hover:rotate-90" />
+            </button>
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Training Plan">
                 <form onSubmit={handleAddPlan} className="space-y-4">

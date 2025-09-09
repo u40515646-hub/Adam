@@ -13,41 +13,51 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, setIsOpen }) => {
-  const { currentUser, logout } = useApp();
+  const { currentUser, logout, unreadCounts } = useApp();
 
   const handleNavClick = (view: View) => {
     setActiveView(view);
     setIsOpen(false);
   }
 
+  if (!currentUser) return null;
+
+  const unreadCount = unreadCounts[currentUser.id] || 0;
+
   const navItems = [
-    { id: 'schedule', label: 'Schedule', icon: 'schedule' },
-    { id: 'team', label: 'Team', icon: 'team' },
-    { id: 'leaderboard', label: 'Leaderboard', icon: 'leaderboard' },
-    { id: 'challenges', label: 'Challenges', icon: 'trophy' },
-    { id: 'training', label: 'Training Plans', icon: 'dashboard' },
-    { id: 'chat', label: 'Chat', icon: 'chat' },
+    { id: 'schedule', label: 'Schedule', icon: 'schedule', role: [Role.Captain, Role.Player] },
+    { id: 'team', label: 'Team', icon: 'team', role: [Role.Captain, Role.Player] },
+    { id: 'leaderboard', label: 'Leaderboard', icon: 'leaderboard', role: [Role.Captain, Role.Player] },
+    { id: 'awards', label: 'Awards', icon: 'trophy', role: [Role.Captain, Role.Player] },
+    { id: 'training', label: 'Training Plans', icon: 'dashboard', role: [Role.Captain] },
+    { id: 'chat', label: 'Chat', icon: 'chat', role: [Role.Captain, Role.Player], badge: unreadCount },
   ];
   
   const captainTools = [
-    { id: 'add-schedule', label: 'Add Schedule Event', icon: 'plus' },
-    { id: 'send-alert', label: 'Send Quick Alert', icon: 'settings' },
+    { id: 'add-schedule', label: 'Add Schedule', icon: 'schedule', role: [Role.Captain] },
+    { id: 'send-alert', label: 'Send Quick Alert', icon: 'settings', role: [Role.Captain] },
   ]
 
-  const NavLink: React.FC<{ id: View; label: string; icon: string }> = ({ id, label, icon }) => (
+  const NavLink: React.FC<{ id: View; label: string; icon: string; badge?: number }> = ({ id, label, icon, badge }) => (
     <li
       onClick={() => handleNavClick(id)}
-      className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-300 relative ${
-        activeView === id ? 'bg-primary/20 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+      className={`flex items-center justify-between space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-300 relative group ${
+        activeView === id ? 'bg-primary/20 text-white shadow-inner shadow-primary/20' : 'text-gray-400 hover:bg-white/5 hover:text-white hover:translate-x-1'
       }`}
     >
-      {activeView === id && <div className="absolute left-0 top-0 h-full w-1 bg-primary rounded-r-full animate-pop-in"></div>}
-      <Icon name={icon} className="w-5 h-5" />
-      <span>{label}</span>
+      <div className="flex items-center space-x-3">
+        {activeView === id && <div className="absolute left-0 top-0 h-full w-1 bg-primary rounded-r-full animate-pop-in"></div>}
+        <Icon name={icon} className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+        <span>{label}</span>
+      </div>
+      {badge && badge > 0 && (
+        <span className="bg-secondary text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full animate-pop-in">
+            {badge}
+        </span>
+      )}
     </li>
   );
 
-  if (!currentUser) return null;
 
   const sidebarContent = (
     <div className="w-64 bg-base-200 flex-shrink-0 p-4 flex flex-col justify-between border-r border-white/10 h-full">
@@ -59,7 +69,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
             <nav className="space-y-2">
                 <h2 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Main Menu</h2>
                 <ul>
-                    {navItems.map((item) => <NavLink key={item.id} {...item} id={item.id as View} />)}
+                    {navItems
+                        .filter(item => item.role.includes(currentUser.role))
+                        .map((item) => <NavLink key={item.id} {...item} id={item.id as View} />)}
                 </ul>
                 
                 {currentUser.role === Role.Captain && (
