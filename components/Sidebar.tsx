@@ -34,9 +34,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
   ];
   
   const captainTools = [
-    { id: 'add-schedule', label: 'Add Schedule', icon: 'schedule', role: [Role.Captain] },
-    { id: 'send-alert', label: 'Send Quick Alert', icon: 'settings', role: [Role.Captain] },
-  ]
+    { id: 'send-alert', label: 'Send Quick Alert', icon: 'send', role: [Role.Captain] },
+    { id: 'settings', label: 'Server Settings', icon: 'settings', role: [Role.Captain] },
+  ];
 
   const NavLink: React.FC<{ id: View; label: string; icon: string; badge?: number }> = ({ id, label, icon, badge }) => (
     <li
@@ -58,61 +58,55 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
     </li>
   );
 
-
-  const sidebarContent = (
-    <div className="w-64 bg-base-200 flex-shrink-0 p-4 flex flex-col justify-between border-r border-white/10 h-full">
-        <div>
-            <div className="flex items-center space-x-2 p-3 mb-6">
-            <h1 className="text-2xl font-bold text-white tracking-wider">Stormfins</h1>
+  return (
+    <>
+        <div className={`fixed inset-0 bg-black/50 z-30 md:hidden transition-opacity ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsOpen(false)}></div>
+        <aside className={`fixed top-0 left-0 h-full w-64 bg-base-200/95 backdrop-blur-lg border-r border-white/10 flex flex-col z-40 transform transition-transform duration-300 md:relative md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <div className="flex items-center space-x-2">
+                    <Icon name="dashboard" className="w-8 h-8 gradient-text" />
+                    <h1 className="text-xl font-bold text-white">Stormfins</h1>
+                </div>
+                <button onClick={() => setIsOpen(false)} className="md:hidden p-1 text-gray-400 hover:text-white">
+                    <Icon name="close" className="w-6 h-6" />
+                </button>
             </div>
-
-            <nav className="space-y-2">
-                <h2 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Main Menu</h2>
-                <ul>
-                    {navItems
-                        .filter(item => item.role.includes(currentUser.role))
-                        .map((item) => <NavLink key={item.id} {...item} id={item.id as View} />)}
-                </ul>
-                
+            
+            <div className="p-4 flex items-center space-x-3 border-b border-white/10 cursor-pointer hover:bg-white/5" onClick={() => handleNavClick('profile')}>
+                <Avatar user={currentUser} size="md" />
+                <div>
+                    <p className="font-semibold text-white">{currentUser.name}</p>
+                    <p className="text-xs text-gray-400">{currentUser.role}</p>
+                </div>
+            </div>
+            
+            <nav className="flex-1 p-4 space-y-4 overflow-y-auto">
+                <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Menu</p>
+                    <ul>
+                        {navItems.filter(item => item.role.includes(currentUser.role)).map(item => (
+                            <NavLink key={item.id} id={item.id as View} label={item.label} icon={item.icon} badge={item.badge} />
+                        ))}
+                    </ul>
+                </div>
                 {currentUser.role === Role.Captain && (
-                    <div className="pt-4">
-                        <h2 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Captain Tools</h2>
-                        <ul className="space-y-2 mt-2">
-                            {captainTools.map((item) => <NavLink key={item.id} {...item} id={item.id as View} />)}
-                        </ul>
+                    <div>
+                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Captain Tools</p>
+                         <ul>
+                             {captainTools.map(item => (
+                                 <NavLink key={item.id} id={item.id as View} label={item.label} icon={item.icon} />
+                             ))}
+                         </ul>
                     </div>
                 )}
             </nav>
-        </div>
-
-        <div className="border-t border-white/10 pt-4">
-            <div 
-                className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors duration-300 hover:bg-white/5"
-                onClick={() => handleNavClick('profile')}
-            >
-            <Avatar user={currentUser} size="md" />
-            <div className="flex-1">
-                <p className="font-semibold text-white text-sm">{currentUser.name}</p>
-                <p className="text-xs text-gray-400">{currentUser.role}</p>
+            
+            <div className="p-4 border-t border-white/10">
+                <button onClick={logout} className="w-full flex items-center space-x-3 p-3 rounded-lg text-gray-400 hover:bg-error/20 hover:text-error transition-colors duration-200">
+                    <Icon name="logout" className="w-5 h-5" />
+                    <span>Logout</span>
+                </button>
             </div>
-            </div>
-            <button
-            onClick={logout}
-            className="w-full flex items-center space-x-3 p-3 mt-2 rounded-lg text-gray-400 hover:bg-error/20 hover:text-error transition-colors duration-300"
-            >
-            <Icon name="logout" className="w-5 h-5" />
-            <span>Logout</span>
-            </button>
-        </div>
-    </div>
-  );
-
-  return (
-    <>
-        {/* Mobile Sidebar */}
-        <div className={`md:hidden fixed inset-0 z-30 transition-opacity duration-300 ${isOpen ? 'bg-black/60' : 'bg-transparent pointer-events-none'}`} onClick={() => setIsOpen(false)}></div>
-        <aside className={`fixed md:relative inset-y-0 left-0 z-40 transform md:transform-none transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-          {sidebarContent}
         </aside>
     </>
   );

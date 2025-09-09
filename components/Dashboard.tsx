@@ -11,11 +11,9 @@ import AlertBanner from './common/AlertBanner';
 import QuickAlertView from './views/QuickAlertView';
 import ChallengesView from './views/ChallengesView';
 import Icon from './common/Icon';
-import AddScheduleView from './views/AddScheduleView';
-import AddTrainingPlanView from './views/AddTrainingPlanView';
-import GrantAwardView from './views/GrantAwardView';
+import SettingsView from './views/SettingsView';
 
-export type View = 'dashboard' | 'team' | 'schedule' | 'leaderboard' | 'chat' | 'profile' | 'training' | 'awards' | 'send-alert' | 'add-schedule' | 'add-training-plan' | 'grant-award';
+export type View = 'dashboard' | 'team' | 'schedule' | 'leaderboard' | 'chat' | 'profile' | 'training' | 'awards' | 'send-alert' | 'settings';
 
 const VIEW_TITLES: Record<View, string> = {
     dashboard: "Dashboard",
@@ -27,9 +25,7 @@ const VIEW_TITLES: Record<View, string> = {
     training: "Training Plans",
     awards: "Team Awards",
     'send-alert': "Send Quick Alert",
-    'add-schedule': "Add Schedule Event",
-    'add-training-plan': "Add Training Plan",
-    'grant-award': "Grant Award"
+    'settings': "Server Settings",
 }
 
 const Dashboard: React.FC = () => {
@@ -47,9 +43,7 @@ const Dashboard: React.FC = () => {
             case 'training': return <TrainingPlansView />;
             case 'awards': return <ChallengesView />;
             case 'send-alert': return <QuickAlertView />;
-            case 'add-schedule': return <AddScheduleView />;
-            case 'add-training-plan': return <AddTrainingPlanView />;
-            case 'grant-award': return <GrantAwardView />;
+            case 'settings': return <SettingsView />;
             default: return <ScheduleView />;
         }
     };

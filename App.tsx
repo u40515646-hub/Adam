@@ -1,10 +1,11 @@
 import React, { createContext, useContext } from 'react';
-import useMockData from './hooks/useMockData';
+import useAppData from './hooks/useAppData';
 import AuthScreen from './components/AuthScreen';
 import Dashboard from './components/Dashboard';
 import { User, Role, ScheduleEvent, TrainingPlan, Award, GrantedAward, ChatMessage } from './types';
 
 interface AppContextType {
+  isDataReady: boolean;
   currentUser: User | null;
   users: User[];
   schedule: ScheduleEvent[];
@@ -34,10 +35,10 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | null>(null);
 
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const mockData = useMockData();
+export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const appData = useAppData();
   return (
-    <AppContext.Provider value={mockData}>
+    <AppContext.Provider value={appData}>
       {children}
     </AppContext.Provider>
   );
@@ -52,7 +53,18 @@ export const useApp = (): AppContextType => {
 };
 
 const App: React.FC = () => {
-  const { currentUser } = useApp();
+  const { currentUser, isDataReady } = useApp();
+
+  if (!isDataReady) {
+    return (
+      <div className="min-h-screen bg-base-100 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold gradient-text mb-4">Stormfins</h1>
+          <p className="text-gray-300">Loading Team Data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-base-100 min-h-screen text-white">

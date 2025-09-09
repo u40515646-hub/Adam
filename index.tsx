@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App, { AppProvider } from './App';
+import App, { AppDataProvider } from './App';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -10,8 +10,8 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <AppProvider>
+    <AppDataProvider>
       <App />
-    </AppProvider>
+    </AppDataProvider>
   </React.StrictMode>
 );
