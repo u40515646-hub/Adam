@@ -3,6 +3,8 @@ import Card from '../common/Card';
 import Icon from '../common/Icon';
 import Notification from '../Notification';
 import { isApiConfigured, saveApiConfig } from '../../services/apiService';
+import { getInitialStateForStorage } from '../../hooks/useAppData';
+
 
 const SettingsView: React.FC = () => {
     const [serverId, setServerId] = useState('');
@@ -16,7 +18,7 @@ const SettingsView: React.FC = () => {
         if (storedConfig) {
             const { serverId: storedServerId, apiKey: storedApiKey } = JSON.parse(storedConfig);
             setServerId(storedServerId);
-            setApiKey(storedApiKey);
+            setApiKey(storedApiKey || '');
         }
     }, []);
 
@@ -35,14 +37,38 @@ const SettingsView: React.FC = () => {
         }, 2000);
     };
 
+    const jsonTemplate = JSON.stringify(getInitialStateForStorage(), null, 2);
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(jsonTemplate);
+        setNotification({ message: 'JSON template copied to clipboard!', type: 'success' });
+    };
+
     return (
-        <Card className="max-w-2xl mx-auto">
+        <Card className="max-w-3xl mx-auto">
             <Notification message={notification?.message || null} type={notification?.type || 'success'} onDismiss={() => setNotification(null)} />
             <h2 className="text-2xl font-bold text-white mb-2">Server Sync Settings</h2>
             <p className="text-gray-400 mb-6">
                 Connect the app to a central server to sync your team's data across all devices. 
-                You can use a free service like <a href="https://www.npoint.io/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">npoint.io</a> to create a JSON storage endpoint.
+                This allows for real-time collaboration. We recommend using a free service like <a href="https://www.npoint.io/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">npoint.io</a>.
             </p>
+
+            <div className="my-8 p-4 bg-base-300/50 rounded-lg border border-white/10 space-y-3 animate-fade-in-up">
+                <h3 className="font-bold text-white text-lg">How to set up your free server:</h3>
+                <ol className="list-decimal list-inside text-gray-300 space-y-2 text-sm">
+                    <li>Go to <a href="https://www.npoint.io/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold">npoint.io</a> in a new tab.</li>
+                    <li>
+                        Click the button below to copy the required JSON structure for your database.
+                        <button onClick={copyToClipboard} className="text-sm bg-white/10 hover:bg-white/20 text-white font-semibold py-1 px-3 rounded-md ml-2 inline-flex items-center transition-transform hover:scale-105">
+                            <Icon name="edit" className="w-4 h-4 mr-2" /> Copy Template
+                        </button>
+                    </li>
+                    <li>Paste the copied text into the large text box on the npoint.io website.</li>
+                    <li>Click the green <span className="font-semibold text-success">"Create"</span> button.</li>
+                    <li>You will be given a URL like: <code className="bg-black/50 p-1 rounded-sm">https://api.npoint.io/a1b2c3d4e5f6</code>.</li>
+                    <li>Copy just the random ID part (e.g., <code className="bg-black/50 p-1 rounded-sm">a1b2c3d4e5f6</code>) and paste it into the "Server ID" field below.</li>
+                </ol>
+            </div>
 
             {configured && (
                  <div className="bg-success/20 border border-success/50 text-success p-4 rounded-lg mb-6 flex items-center space-x-3">

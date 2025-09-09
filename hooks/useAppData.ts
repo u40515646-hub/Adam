@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { User, Role, ScheduleEvent, TrainingPlan, Award, GrantedAward, ChatMessage } from '../types';
 import { fetchData, saveData, isApiConfigured } from '../services/apiService';
 
@@ -28,31 +28,55 @@ const predefinedAwards: Award[] = [
     { id: 8, title: 'Comeback Kid', description: 'Showed incredible resilience and recovery from a setback.', icon: 'leaderboard', points: 80 },
 ];
 
-const getInitialState = () => ({
+interface SyncedData {
+    users: User[];
+    schedule: ScheduleEvent[];
+    trainingPlans: TrainingPlan[];
+    conversations: Record<string, ChatMessage[]>;
+    grantedAwards: GrantedAward[];
+    _lastModified: number;
+}
+
+interface AppState extends SyncedData {
+    currentUser: User | null;
+    unreadCounts: Record<number, number>;
+}
+
+
+const getInitialState = (): AppState => ({
     users: initialUsers,
     schedule: [],
     trainingPlans: [],
     conversations: {},
     grantedAwards: [],
+    _lastModified: 0,
     currentUser: null,
     unreadCounts: {},
 });
 
+export const getInitialStateForStorage = () => {
+    const { currentUser, unreadCounts, _lastModified, ...state } = getInitialState();
+    return { ...state, _lastModified: Date.now() };
+};
+
+
 const useAppData = () => {
-    const [appState, setAppState] = useState(getInitialState);
+    const [appState, setAppState] = useState<AppState>(getInitialState);
     const [isDataReady, setIsDataReady] = useState(false);
     const [alert, setAlert] = useState<string | null>(null);
+    const lastSyncedTimestamp = useRef(0);
+    const isWriting = useRef(false);
 
     // Fetch initial data from server on load
     useEffect(() => {
         const loadData = async () => {
+            let finalState: AppState = getInitialState(); // Start with default state
+            const initialSyncedState = getInitialStateForStorage();
+
             if (isApiConfigured()) {
                 const data = await fetchData();
                 if (data) {
-                    // Create a new state object by merging initial state with fetched data.
-                    // This prevents crashes if fetched data is incomplete (e.g., from a new npoint bin).
-                    const initialState = getInitialState();
-                    const mergedData = { ...initialState, ...data };
+                    const mergedData: SyncedData = { ...initialSyncedState, ...data };
 
                     // Re-hydrate Date objects from the merged data
                     if (mergedData.conversations) {
@@ -64,34 +88,85 @@ const useAppData = () => {
                         mergedData.grantedAwards.forEach((award: GrantedAward) => { award.timestamp = new Date(award.timestamp); });
                     }
                     
-                    // If server has no users, fallback to initial users to ensure captain can log in
                     if (!mergedData.users || mergedData.users.length === 0) {
                         mergedData.users = initialUsers;
                     }
-
-                    // Set the merged state, ensuring currentUser is always reset on a full data load
-                    setAppState({ ...mergedData, currentUser: null });
+                    
+                    finalState = { ...finalState, ...mergedData };
+                    lastSyncedTimestamp.current = mergedData._lastModified;
 
                 } else {
                     console.warn("API is configured, but failed to fetch data. Using local defaults.");
-                    // Fallback to initial state if fetch fails
-                    setAppState(getInitialState());
                 }
             }
+            
+            const loggedInUserId = localStorage.getItem('loggedInUserId');
+            let userToLogin = null;
+            if (loggedInUserId) {
+                const user = finalState.users.find((u: User) => u.id === parseInt(loggedInUserId, 10));
+                if (user) {
+                    userToLogin = user;
+                } else {
+                    localStorage.removeItem('loggedInUserId');
+                }
+            }
+
+            setAppState({ ...finalState, currentUser: userToLogin });
             setIsDataReady(true);
         };
         loadData();
     }, []);
 
-    const syncWithServer = useCallback(async (state: any) => {
+    // Real-time polling effect
+    useEffect(() => {
+        if (!isDataReady || !isApiConfigured()) return;
+
+        const poll = async () => {
+            if (isWriting.current) return;
+
+            const serverData = await fetchData();
+            if (serverData && serverData._lastModified > lastSyncedTimestamp.current) {
+                console.log("New data from server, updating state.");
+                
+                if (serverData.conversations) {
+                    Object.values(serverData.conversations).forEach((convo: any) => {
+                        convo.forEach((msg: ChatMessage) => { msg.timestamp = new Date(msg.timestamp); });
+                    });
+                }
+                if (serverData.grantedAwards) {
+                    serverData.grantedAwards.forEach((award: GrantedAward) => { award.timestamp = new Date(award.timestamp); });
+                }
+
+                setAppState(prev => ({
+                    ...prev,
+                    ...serverData,
+                }));
+                lastSyncedTimestamp.current = serverData._lastModified;
+            }
+        };
+
+        const intervalId = setInterval(poll, 5000);
+        return () => clearInterval(intervalId);
+    }, [isDataReady]);
+
+    const syncWithServer = useCallback(async (state: AppState) => {
         if (isApiConfigured()) {
-            // Exclude currentUser from being saved to the server
+            isWriting.current = true;
             const { currentUser, ...stateToSave } = state;
-            await saveData(stateToSave);
+            
+            const timestamp = Date.now();
+            stateToSave._lastModified = timestamp;
+
+            const success = await saveData(stateToSave);
+            if (success) {
+                lastSyncedTimestamp.current = timestamp;
+            }
+            // Allow a brief moment for write to settle before allowing reads again
+            setTimeout(() => { isWriting.current = false; }, 500);
         }
     }, []);
 
-    const updateState = (updater: (prevState: typeof appState) => typeof appState) => {
+    const updateState = (updater: (prevState: AppState) => AppState) => {
         setAppState(prev => {
             const newState = updater(prev);
             syncWithServer(newState);
@@ -99,25 +174,15 @@ const useAppData = () => {
         });
     };
 
-    const {
-        users,
-        schedule,
-        trainingPlans,
-        conversations,
-        grantedAwards,
-        currentUser,
-        unreadCounts,
-    } = appState;
-
     const login = (name: string, pinOrPassword: string, role: Role, captainPassword?: string): boolean => {
         const trimmedName = name.trim();
-        const user = users.find(u => u.name.toLowerCase() === trimmedName.toLowerCase() && u.role === role);
+        const user = appState.users.find(u => u.name.toLowerCase() === trimmedName.toLowerCase() && u.role === role);
         if (user && user.isActive) {
-            if (role === Role.Captain && user.pin === pinOrPassword && user.password === captainPassword) {
-                setAppState(prev => ({ ...prev, currentUser: user }));
-                return true;
-            }
-            if (role === Role.Player && user.password === pinOrPassword) {
+            const isCaptainValid = role === Role.Captain && user.pin === pinOrPassword && user.password === captainPassword;
+            const isPlayerValid = role === Role.Player && user.password === pinOrPassword;
+
+            if (isCaptainValid || isPlayerValid) {
+                localStorage.setItem('loggedInUserId', user.id.toString());
                 setAppState(prev => ({ ...prev, currentUser: user }));
                 return true;
             }
@@ -126,26 +191,29 @@ const useAppData = () => {
     };
 
     const logout = () => {
+        localStorage.removeItem('loggedInUserId');
         setAppState(prev => ({ ...prev, currentUser: null }));
     };
 
     const activateSwimmer = (name: string, password: string): boolean => {
         const trimmedName = name.trim();
-        const userIndex = users.findIndex(u => u.name.toLowerCase() === trimmedName.toLowerCase() && u.role === Role.Player && !u.isActive);
-        if (userIndex !== -1) {
-            updateState(prev => {
+        let userActivated = false;
+        updateState(prev => {
+            const userIndex = prev.users.findIndex(u => u.name.toLowerCase() === trimmedName.toLowerCase() && u.role === Role.Player && !u.isActive);
+            if (userIndex !== -1) {
                 const updatedUsers = [...prev.users];
                 updatedUsers[userIndex] = { ...updatedUsers[userIndex], password, isActive: true };
+                userActivated = true;
                 return { ...prev, users: updatedUsers };
-            });
-            return true;
-        }
-        return false;
+            }
+            return prev;
+        });
+        return userActivated;
     };
   
     const createCaptain = (name: string, pin: string, password: string): boolean => {
         const trimmedName = name.trim();
-        if (users.some(u => u.name.toLowerCase() === trimmedName.toLowerCase())) {
+        if (appState.users.some(u => u.name.toLowerCase() === trimmedName.toLowerCase())) {
             return false; // User already exists
         }
         const newCaptain: User = {
@@ -166,7 +234,7 @@ const useAppData = () => {
 
     const addSwimmer = (name: string) => {
         const trimmedName = name.trim();
-        if (users.some(u => u.name.toLowerCase() === trimmedName.toLowerCase())) return;
+        if (appState.users.some(u => u.name.toLowerCase() === trimmedName.toLowerCase())) return;
         const newSwimmer: User = {
             id: Date.now(),
             name: trimmedName,
@@ -223,7 +291,7 @@ const useAppData = () => {
     };
 
     const sendDirectMessage = (senderId: number, receiverId: number, text: string) => {
-        const sender = users.find(u => u.id === senderId);
+        const sender = appState.users.find(u => u.id === senderId);
         if (!sender) return;
 
         const conversationId = [senderId, receiverId].sort().join('-');
@@ -242,12 +310,15 @@ const useAppData = () => {
                 updatedConversations[conversationId] = [];
             }
             updatedConversations[conversationId].push(newMessage);
+            
+            const currentUnread = prev.unreadCounts[receiverId] || 0;
+
             return {
                 ...prev,
                 conversations: updatedConversations,
                 unreadCounts: {
                     ...prev.unreadCounts,
-                    [receiverId]: (prev.unreadCounts[receiverId] || 0) + 1,
+                    [receiverId]: currentUnread + 1,
                 }
             };
         });
@@ -293,24 +364,25 @@ const useAppData = () => {
     const clearChatNotifications = (userId: number) => {
         updateState(prev => {
             const newCounts = { ...prev.unreadCounts };
-            if (newCounts[userId]) {
+            if (newCounts[userId] > 0) {
                 delete newCounts[userId];
+                return { ...prev, unreadCounts: newCounts };
             }
-            return { ...prev, unreadCounts: newCounts };
+            return prev;
         });
     };
     
     return {
         isDataReady,
-        currentUser,
-        users,
-        schedule,
-        trainingPlans,
+        currentUser: appState.currentUser,
+        users: appState.users,
+        schedule: appState.schedule,
+        trainingPlans: appState.trainingPlans,
         predefinedAwards,
-        grantedAwards,
-        conversations,
+        grantedAwards: appState.grantedAwards,
+        conversations: appState.conversations,
         alert,
-        unreadCounts,
+        unreadCounts: appState.unreadCounts,
         login,
         logout,
         activateSwimmer,

@@ -49,13 +49,19 @@ export const fetchData = async (): Promise<any | null> => {
         if (!response.ok) {
             // A 404 is normal for a new npoint bin, treat as empty data.
             if (response.status === 404) {
-                return {}; 
+                const emptyData = { _lastModified: 0 };
+                return emptyData;
             }
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         // Handle potentially empty responses from npoint
         const text = await response.text();
-        return text ? JSON.parse(text) : {};
+        const data = text ? JSON.parse(text) : {};
+        if (typeof data._lastModified === 'undefined') {
+            // Ensure this property exists for comparison, even on a fresh bin
+            data._lastModified = 0;
+        }
+        return data;
     } catch (error) {
         console.error("Failed to fetch data:", error);
         return null;
